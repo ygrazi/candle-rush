@@ -1,4 +1,4 @@
-/* Candle Rush v0.4
+/* Candle Rush v0.5
    Created by Yitzhak Grazi.
    A bubble shooter starring the mishpacha.
    Plain canvas, no libraries. Logical board is 400 x 680 and scales to any screen. */
@@ -843,6 +843,61 @@
     return b || 0;
   }
 
+  // ---------- High scores ----------
+  // "This device": top 10 per difficulty in localStorage.
+  // "Everyone": Firebase Firestore over plain REST (no SDK). The web key below is public by design;
+  // the Firestore security rules decide what anyone can do: read the boards and add a score with sane
+  // values. Nobody can edit or delete scores from the game (Yitzhak can, from the Firebase console).
+  const ONLINE = { projectId: 'candle-rush', apiKey: 'AIzaSyD7txyubcY0Dbn8538fePgjrrDqO7DFvYc' };
+  const Board = {
+    get on() { return !!(ONLINE.projectId && ONLINE.apiKey); },
+    url(id) { return `https://firestore.googleapis.com/v1/projects/${ONLINE.projectId}/databases/(default)/documents/scores_${id}`; },
+    async top(id, n = 10) {
+      const r = await fetch(`${this.url(id)}?orderBy=score%20desc&pageSize=${n}&key=${ONLINE.apiKey}`);
+      if (!r.ok) throw new Error('scoreboard ' + r.status);
+      const j = await r.json();
+      return (j.documents || []).map(d => ({
+        doc: d.name,
+        name: (d.fields.name && d.fields.name.stringValue) || '?',
+        score: Number((d.fields.score && d.fields.score.integerValue) || 0),
+        level: Number((d.fields.level && d.fields.level.integerValue) || 1),
+      }));
+    },
+    async submit(id, e) {
+      const body = { fields: {
+        name: { stringValue: e.name }, score: { integerValue: String(e.score) },
+        level: { integerValue: String(e.level) }, at: { timestampValue: new Date(e.at).toISOString() },
+      } };
+      const r = await fetch(`${this.url(id)}?key=${ONLINE.apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      if (!r.ok) throw new Error('submit ' + r.status);
+      return (await r.json()).name;
+    },
+  };
+  // Scores made offline wait here and go up the next time the game is online
+  function sendScore(id, e) {
+    if (!Board.on) return Promise.resolve(null);
+    return Board.submit(id, e).catch(() => {
+      const q = store.get('pending', []);
+      q.push({ id, e });
+      store.set('pending', q.slice(-20));
+      return null;
+    });
+  }
+  async function flushPending() {
+    const q = store.get('pending', []);
+    if (!q.length || !Board.on || navigator.onLine === false) return;
+    store.set('pending', []);
+    for (const it of q) await sendScore(it.id, it.e);
+  }
+  const localScores = id => store.get('hs.' + id, []);
+  function addLocalScore(id, e) {
+    const list = localScores(id).concat([e]).sort((a, b) => b.score - a.score).slice(0, 10);
+    store.set('hs.' + id, list);
+    return list.findIndex(x => x.at === e.at && x.score === e.score) + 1; // 0 = not in the top 10
+  }
+  const cleanName = s => String(s || '').normalize('NFC').replace(/[^\p{L}\p{N} .'-]/gu, '').replace(/\s+/g, ' ').trim().slice(0, 16);
+  const playerName = () => cleanName(store.get('name', ''));
+
   // ---------- Levels ----------
   function levelCfg(n) {
     const d = diff();
@@ -893,6 +948,7 @@
     cur: 0, next: 1, angle: Math.PI / 2, shot: null, busy: 0, timer: 0, dieDropped: false,
     fx: [], falling: [], parts: [], texts: [], banner: null, shake: 0, candles: 0, t: 0,
     best: loadBest(), maxLevel: store.get('maxLevel', 1), clearInfo: null, pendingLevel: 1,
+    recorded: false, lastEntry: null,
   };
 
   function pickType(allowHamsa = true) {
@@ -924,7 +980,7 @@
     G.score = carry; G.shown = carry; G.levelStartScore = carry;
     G.cur = pickType(false); G.next = pickType(false);
     G.angle = Math.PI / 2; G.candles = 0; G.dieDropped = false;
-    G.state = 'play'; G.busy = 0.45;
+    G.state = 'play'; G.busy = 0.45; G.recorded = false;
     banner(`Level ${n}`, stopName(n));
     showScreen(null);
   }
@@ -1065,20 +1121,37 @@
     say('Mazal Tov!', W / 2, 280, 40, '#ffb02e');
     G.state = 'clearing'; G.timer = 1.4;
   }
+  // A game ends at game over, End game, or switching difficulty mid-game. Saves the score once.
+  function recordGame() {
+    if (G.recorded || G.score <= 0) return null;
+    G.recorded = true;
+    saveBest();
+    const id = diff().id;
+    const e = { name: playerName() || 'Player', score: G.score, level: G.level, at: Date.now() };
+    const ent = { id, e, rank: addLocalScore(id, e), doc: null, globalRank: 0 };
+    G.lastEntry = ent;
+    sendScore(id, e).then(doc => { ent.doc = doc; if (doc) onScoreSent(ent); });
+    return ent;
+  }
   function gameOver() {
     if (G.state === 'dying') return;
     G.state = 'dying'; G.timer = 1.7; G.dieDropped = false; G.shot = null;
-    saveBest();
+    recordGame();
     Sound.over(); vibrate([60, 40, 140]);
     banner('Oy vey!', 'The stone came all the way down', 1.6);
   }
 
   // ---------- UI screens ----------
   const $ = id => document.getElementById(id);
-  const screens = { title: $('screen-title'), diff: $('screen-diff'), pause: $('screen-pause'), level: $('screen-level'), over: $('screen-over') };
+  const screens = {
+    title: $('screen-title'), name: $('screen-name'), diff: $('screen-diff'), scores: $('screen-scores'),
+    pause: $('screen-pause'), level: $('screen-level'), over: $('screen-over'),
+  };
+  const OVERLAYS = ['name', 'diff', 'scores'];
   function showScreen(name) {
-    // the difficulty picker opens on top of the title screen
-    for (const k in screens) screens[k].hidden = !(k === name || (name === 'diff' && k === 'title'));
+    // name entry, difficulty and high scores open on top of the title screen
+    const keepTitle = G.state === 'title' && OVERLAYS.includes(name);
+    for (const k in screens) screens[k].hidden = !(k === name || (keepTitle && k === 'title'));
     $('hud-buttons').hidden = false;
     $('btn-pause').hidden = !(G.state === 'play' || G.state === 'clearing' || G.state === 'dying');
     if (name) {
@@ -1094,10 +1167,102 @@
     const cont = $('btn-continue');
     cont.hidden = G.maxLevel <= 1;
     cont.textContent = `Continue at Level ${G.maxLevel}`;
-    const best = $('best-line');
-    best.hidden = !G.best;
-    best.textContent = `Best on ${diff().name}: ${fmt(G.best)} gelt`;
+    syncPlayerLine();
     showScreen('title');
+  }
+  function syncPlayerLine() {
+    const n = playerName();
+    $('player-line').hidden = !n;
+    $('player-name').textContent = n;
+  }
+
+  // Name: asked the first time someone plays, shown on the high scores
+  let afterName = null;
+  function askName(next) {
+    afterName = next;
+    $('name-input').value = playerName();
+    $('name-error').hidden = true;
+    showScreen('name');
+  }
+  function needName(next) { if (playerName()) next(); else askName(next); }
+
+  // High scores
+  const scoresView = { id: 'easy', src: Board.on ? 'everyone' : 'phone' };
+  let scoresReq = 0;
+  function buildScoreTabs() {
+    const tabs = $('scores-tabs');
+    tabs.textContent = '';
+    DIFFS.forEach(d => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.dataset.tab = d.id; b.textContent = d.name;
+      b.addEventListener('click', () => { scoresView.id = d.id; loadScores(); });
+      tabs.append(b);
+    });
+    $('scores-src').hidden = !Board.on;
+  }
+  function syncScoreTabs() {
+    $('scores-tabs').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.tab === scoresView.id)));
+    $('scores-src').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.src === scoresView.src)));
+  }
+  function showScores(id) {
+    scoresView.id = id || diff().id;
+    showScreen('scores');
+    loadScores();
+  }
+  function renderScores(list) {
+    const ol = $('scores-list');
+    ol.textContent = '';
+    if (!list) return;
+    if (!list.length) {
+      const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'No scores yet. Be the first!';
+      ol.append(li); return;
+    }
+    const me = G.lastEntry;
+    list.forEach((s, i) => {
+      const li = document.createElement('li');
+      const mine = me && me.id === scoresView.id && (s.doc ? s.doc === me.doc : s.at === me.e.at);
+      if (mine) li.className = 'me';
+      const cells = [['rk', String(i + 1)], ['nm', s.name], ['lv', 'L' + s.level], ['sc', fmt(s.score)]];
+      for (const [cls, text] of cells) { const sp = document.createElement('span'); sp.className = cls; sp.textContent = text; li.append(sp); }
+      ol.append(li);
+    });
+  }
+  async function loadScores() {
+    syncScoreTabs();
+    const req = ++scoresReq;
+    const { id, src } = scoresView;
+    const note = $('scores-note');
+    if (src === 'phone' || !Board.on) { renderScores(localScores(id)); note.textContent = 'Games played on this device'; return; }
+    renderScores(null);
+    note.textContent = 'Loading…';
+    try {
+      const list = await Board.top(id);
+      if (req !== scoresReq) return;
+      renderScores(list);
+      note.textContent = 'Everyone who plays Candle Rush';
+    } catch (err) {
+      if (req !== scoresReq) return;
+      renderScores(localScores(id));
+      note.textContent = "Can't reach the online scores right now, so these are from this device.";
+    }
+  }
+  async function onScoreSent(ent) {
+    try {
+      const list = await Board.top(ent.id);
+      ent.globalRank = list.findIndex(s => s.doc === ent.doc) + 1;
+      if (ent.globalRank && !screens.over.hidden && G.lastEntry === ent) showRankLine(ent);
+    } catch (e) { /* offline: the device rank line stays */ }
+  }
+  function showRankLine(ent) {
+    const line = $('over-rank');
+    const name = DIFFS.find(d => d.id === ent.id).name;
+    let text = '';
+    if (ent.globalRank === 1) text = `#1 for everyone on ${name}! Mazal Tov!`;
+    else if (ent.globalRank) text = `#${ent.globalRank} for everyone on ${name}!`;
+    else if (ent.rank === 1) text = `New best on this device for ${name}!`;
+    else if (ent.rank) text = `#${ent.rank} on this device for ${name}`;
+    line.textContent = text;
+    line.hidden = !text;
   }
   function buildDiffList() {
     const list = $('diff-list');
@@ -1142,6 +1307,7 @@
     $('over-best-label').textContent = `Best on ${diff().name}`;
     $('over-level').textContent = `Level ${G.level}, ${stopName(G.level)}`;
     $('btn-retry').textContent = `Try Level ${G.level} again`;
+    if (G.lastEntry && G.recorded) showRankLine(G.lastEntry); else $('over-rank').hidden = true;
     G.state = 'over';
     showScreen('over');
   }
@@ -1198,7 +1364,9 @@
 
   window.addEventListener('keydown', e => {
     const k = e.key;
-    if (k === 'Escape' && !screens.diff.hidden) { showTitle(); return; }
+    if (k === 'Escape' && !screens.scores.hidden) { closeScores(); return; }
+    if (k === 'Escape' && (!screens.diff.hidden || !screens.name.hidden)) { showTitle(); return; }
+    if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     if (k === 'p' || k === 'P' || k === 'Escape') { togglePause(); return; }
     if (k === 'm' || k === 'M') { Sound.toggle(); syncMute(); return; }
     if (k === 'n' || k === 'N') { Music.toggle(); syncMusic(); return; }
@@ -1214,14 +1382,37 @@
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') togglePause(); });
 
-  $('btn-play').addEventListener('click', () => showDiff(1));
-  $('btn-continue').addEventListener('click', () => showDiff(G.maxLevel));
+  $('btn-play').addEventListener('click', () => needName(() => showDiff(1)));
+  $('btn-continue').addEventListener('click', () => needName(() => showDiff(G.maxLevel)));
   $('btn-diff-back').addEventListener('click', showTitle);
+  $('btn-change-name').addEventListener('click', () => askName(showTitle));
+  $('btn-name-back').addEventListener('click', showTitle);
+  $('name-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const n = cleanName($('name-input').value);
+    if (!n) { $('name-error').hidden = false; return; }
+    store.set('name', n);
+    syncPlayerLine();
+    $('name-input').blur();
+    const next = afterName || showTitle;
+    afterName = null;
+    next();
+  });
+  function closeScores() { showScreen(G.state === 'over' ? 'over' : 'title'); }
+  $('btn-scores').addEventListener('click', () => showScores());
+  $('btn-over-scores').addEventListener('click', () => showScores(G.lastEntry ? G.lastEntry.id : undefined));
+  $('btn-scores-close').addEventListener('click', closeScores);
+  $('scores-src').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { scoresView.src = b.dataset.src; loadScores(); }));
+  $('btn-change-diff').addEventListener('click', () => { const lvl = G.level; recordGame(); showTitle(); showDiff(lvl); });
+  $('btn-end').addEventListener('click', () => {
+    const ent = recordGame();
+    showTitle();
+    if (ent && ent.rank) showScores(ent.id);
+  });
   $('btn-pause').addEventListener('click', togglePause);
   $('btn-mute').addEventListener('click', () => { Sound.init(); Sound.toggle(); syncMute(); });
   $('btn-resume').addEventListener('click', togglePause);
   $('btn-restart').addEventListener('click', () => startLevel(G.level, G.levelStartScore));
-  $('btn-home').addEventListener('click', showTitle);
   $('btn-next').addEventListener('click', () => startLevel(G.level + 1, G.score));
   $('btn-retry').addEventListener('click', () => startLevel(G.level, G.levelStartScore));
   $('btn-over-home').addEventListener('click', showTitle);
@@ -1618,7 +1809,10 @@
   $('logo-candles').src = makeLogoCandles();
   syncMute();
   syncMusic();
+  buildScoreTabs();
   showTitle();
+  flushPending();
+  window.addEventListener('online', flushPending);
   requestAnimationFrame(frame);
 
   // Handy for testing in the browser console

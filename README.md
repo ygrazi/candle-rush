@@ -19,6 +19,9 @@ It opens full screen like a normal app, and after the first visit it works offli
 - Match 3 or more of the same character to pop them. Anything left hanging falls for big bonus gelt.
 - **Candles In:** every miss costs minutes on the Shabbat clock (18 minutes, like candle lighting). Dropping pieces buys time back. At zero, the Jerusalem stone wall comes down a row.
 - Tap **Next** to swap your current piece.
+- **Your name:** asked the first time you play (first name or nickname). Change it from the title screen.
+- **Pause menu:** Resume, Restart level, Change difficulty, or End game. Ending a game (or switching difficulty) saves your score.
+- **High scores:** top 10 for each difficulty, for **Everyone** (online, shared by all players) or **This device**. Scores made offline are sent the next time the phone is online.
 - **Difficulty:** pick one each time you tap Play or Continue. Best scores are kept per difficulty.
 
 | Difficulty | Aim guide | Candle clock | Gelt |
@@ -55,3 +58,9 @@ Plain HTML, CSS and JavaScript with no build step. All art and sound are generat
 To run it locally, serve the folder (for example `python3 -m http.server`) and open http://localhost:8000.
 
 © 2026 Yitzhak Grazi
+
+## Online scoreboard
+
+Scores for everyone live in Firebase Firestore (project `candle-rush`, free plan). The game talks to it over plain REST; the public web key in `game.js` is meant to be public, and the database rules only allow reading the boards and adding a score with sane values. Nobody can edit or delete scores from the game.
+
+To remove a score (say, a rude name): Firebase console → Candle Rush → Firestore Database → Data → open the `scores_<difficulty>` collection → delete the document.

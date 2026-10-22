@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="style.css?v=0.4.0">
+<link rel="stylesheet" href="style.css?v=0.5.0">
 </head>
 <body>
 <div id="app">
@@ -46,13 +46,47 @@
         <button class="btn" id="btn-play" type="button" data-focus>Play</button>
         <button class="btn secondary" id="btn-continue" type="button" hidden>Continue</button>
       </div>
-      <p class="best" id="best-line" hidden></p>
+      <p class="player-line" id="player-line" hidden>Playing as <b id="player-name"></b> · <button class="link" type="button" id="btn-change-name">change</button></p>
       <p class="howto">Aim and let go. Match 3 to pop them. Every miss brings candle lighting closer, and then the Jerusalem stone comes down a row. Drop Haman for bonus gelt.</p>
-      <button class="pill" type="button" data-music aria-pressed="true">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
-        <span>Music on</span>
-      </button>
+      <div class="pill-row">
+        <button class="pill" type="button" id="btn-scores">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h10v4.5a5 5 0 0 1-10 0z" fill="currentColor"/><path d="M7 5.5H4.5v1A3.5 3.5 0 0 0 8 10M17 5.5h2.5v1A3.5 3.5 0 0 1 16 10" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 13v3.5" stroke="currentColor" stroke-width="2.2"/><rect x="8" y="16.5" width="8" height="4" rx="1" fill="currentColor"/></svg>
+          <span>High scores</span>
+        </button>
+        <button class="pill" type="button" data-music aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
+          <span>Music on</span>
+        </button>
+      </div>
       <p class="credit">Created by Yitzhak Grazi</p>
+    </section>
+
+    <section class="screen dim" id="screen-name" aria-label="Your name" hidden>
+      <form class="card" id="name-form" novalidate>
+        <h2>Shalom!</h2>
+        <p>What's your name? It goes on the high scores.</p>
+        <input class="name-input" id="name-input" type="text" maxlength="16" autocomplete="nickname" autocapitalize="words" spellcheck="false" enterkeyhint="go" placeholder="Your name" aria-label="Your name" data-focus>
+        <p class="hint">Use a first name or nickname. Everyone who plays can see it.</p>
+        <p class="field-error" id="name-error" hidden>Type a name first.</p>
+        <div class="buttons">
+          <button class="btn" type="submit">Next</button>
+          <button class="btn secondary" type="button" id="btn-name-back">Back</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="screen dim" id="screen-scores" aria-label="High scores" hidden>
+      <div class="card scores-card">
+        <h2>High Scores</h2>
+        <div class="seg" id="scores-src" role="group" aria-label="Whose scores">
+          <button type="button" data-src="everyone" aria-pressed="true">Everyone</button>
+          <button type="button" data-src="phone" aria-pressed="false">This device</button>
+        </div>
+        <div class="tabs" id="scores-tabs" role="group" aria-label="Difficulty"></div>
+        <ol class="scores-list" id="scores-list"></ol>
+        <p class="scores-note" id="scores-note"></p>
+        <button class="btn secondary" type="button" id="btn-scores-close" data-focus>Close</button>
+      </div>
     </section>
 
     <section class="screen dim" id="screen-diff" aria-label="Choose difficulty" hidden>
@@ -75,7 +109,8 @@
         <div class="buttons">
           <button class="btn" id="btn-resume" type="button" data-focus>Resume</button>
           <button class="btn secondary" id="btn-restart" type="button">Restart level</button>
-          <button class="btn secondary" id="btn-home" type="button">Home</button>
+          <button class="btn secondary" id="btn-change-diff" type="button">Change difficulty</button>
+          <button class="btn secondary" id="btn-end" type="button">End game</button>
         </div>
       </div>
     </section>
@@ -106,15 +141,17 @@
           <dt id="over-best-label">Best</dt><dd id="over-best">0</dd>
           <dt>Reached</dt><dd id="over-level">Level 1</dd>
         </dl>
+        <p class="rank-line" id="over-rank" hidden></p>
         <div class="buttons">
           <button class="btn" id="btn-retry" type="button" data-focus>Try again</button>
+          <button class="btn secondary" id="btn-over-scores" type="button">High scores</button>
           <button class="btn secondary" id="btn-over-home" type="button">Home</button>
         </div>
       </div>
     </section>
   </div>
 </div>
-<script src="game.js?v=0.4.0"></script>
+<script src="game.js?v=0.5.0"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
