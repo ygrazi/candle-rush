@@ -1,4 +1,4 @@
-/* Candle Rush v0.2
+/* Candle Rush v0.4
    Created by Yitzhak Grazi.
    A bubble shooter starring the mishpacha.
    Plain canvas, no libraries. Logical board is 400 x 680 and scales to any screen. */
@@ -824,15 +824,43 @@
     return cands[0] || null;
   }
 
+  // ---------- Difficulty (like Snood's Child / Easy / Medium / Hard / Evil) ----------
+  // guide: full = dotted path + landing spot, short = up to the first bounce, none = launcher only
+  // miss: how much each miss costs on the candle clock, relative to normal. mult: gelt multiplier.
+  const DIFFS = [
+    { id: 'kids', name: 'Kids', desc: 'Full aim guide, slow clock, fewer characters', guide: 'full', miss: 0.67, rows: -1, colors: -1, bricks: 0, hamans: 0, hamsa: 0.06, mult: 0.5, multLabel: '½×' },
+    { id: 'easy', name: 'Easy', desc: 'Full aim guide', guide: 'full', miss: 1, rows: 0, colors: 0, bricks: 0, hamans: 0, hamsa: 0, mult: 1, multLabel: '1×' },
+    { id: 'medium', name: 'Medium', desc: 'Short aim guide', guide: 'short', miss: 1, rows: 0, colors: 0, bricks: 0, hamans: 0, hamsa: 0, mult: 1.5, multLabel: '1½×' },
+    { id: 'hard', name: 'Hard', desc: 'No aim guide, faster clock', guide: 'none', miss: 1.34, rows: 0, colors: 0, bricks: 1, hamans: 0, hamsa: 0, mult: 2, multLabel: '2×' },
+    { id: 'pesach', name: 'Erev Pesach', desc: 'No guide, fastest clock, extra bricks', guide: 'none', miss: 1.67, rows: 1, colors: 0, bricks: 3, hamans: 1, hamsa: 0, mult: 3, multLabel: '3×' },
+  ];
+  let diffIdx = Math.min(DIFFS.length - 1, Math.max(0, store.get('diff', 1) | 0));
+  const diff = () => DIFFS[diffIdx];
+  const bestKey = () => 'best.' + diff().id;
+  function loadBest() {
+    let b = store.get(bestKey(), null);
+    if (b === null && diff().id === 'easy') b = store.get('best', 0); // scores from before difficulty levels existed
+    return b || 0;
+  }
+
   // ---------- Levels ----------
   function levelCfg(n) {
-    return {
+    const d = diff();
+    const base = {
       rows: Math.min(4 + Math.ceil(n / 2), 9),
       colors: n <= 1 ? 4 : n <= 3 ? 5 : 6,
       bricks: n >= 3 ? Math.min(2 + Math.floor((n - 3) / 2), 8) : 0,
       hamans: n >= 2 ? Math.min(1 + Math.floor((n - 2) / 3), 4) : 0,
       missCost: n <= 4 ? 3 : n <= 8 ? 4 : 6,
       hamsa: n >= 2 ? 0.07 : 0,
+    };
+    return {
+      rows: Math.max(3, Math.min(base.rows + d.rows, 10)),
+      colors: Math.max(3, Math.min(base.colors + d.colors, 6)),
+      bricks: base.bricks + d.bricks,
+      hamans: base.hamans + d.hamans,
+      missCost: Math.max(1, Math.round(base.missCost * d.miss)),
+      hamsa: base.hamsa + d.hamsa,
     };
   }
   function buildLevel(n) {
@@ -853,8 +881,8 @@
     for (let r = 1; r < cfg.rows; r++) for (let c = 0; c < rowCols(r); c++) spots.push([r, c]);
     for (let i = spots.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [spots[i], spots[j]] = [spots[j], spots[i]]; }
     let k = 0;
-    for (let i = 0; i < cfg.bricks; i++, k++) { const [r, c] = spots[k]; g[r][c] = BRICK; }
-    for (let i = 0; i < cfg.hamans; i++, k++) { const [r, c] = spots[k]; g[r][c] = HAMAN; }
+    for (let i = 0; i < cfg.bricks && k < spots.length; i++, k++) { const [r, c] = spots[k]; g[r][c] = BRICK; }
+    for (let i = 0; i < cfg.hamans && k < spots.length; i++, k++) { const [r, c] = spots[k]; g[r][c] = HAMAN; }
     return g;
   }
 
@@ -864,7 +892,7 @@
     grid: emptyGrid(), gridVer: 0, wallRows: 0, wallVis: 0, clock: CLOCK_MAX, cfg: levelCfg(1),
     cur: 0, next: 1, angle: Math.PI / 2, shot: null, busy: 0, timer: 0, dieDropped: false,
     fx: [], falling: [], parts: [], texts: [], banner: null, shake: 0, candles: 0, t: 0,
-    best: store.get('best', 0), maxLevel: store.get('maxLevel', 1), clearInfo: null,
+    best: loadBest(), maxLevel: store.get('maxLevel', 1), clearInfo: null, pendingLevel: 1,
   };
 
   function pickType(allowHamsa = true) {
@@ -879,13 +907,13 @@
     if (isColor(G.cur) && !p.includes(G.cur)) G.cur = pickType(false);
     if (isColor(G.next) && !p.includes(G.next)) G.next = pickType(false);
   }
-  function addScore(n) { G.score += n; }
+  function addScore(n) { const v = Math.round(n * diff().mult); G.score += v; return v; }
   function say(text, x, y, size = 22, color = '#ffd166') {
     G.texts.push({ text, x: Math.max(70, Math.min(W - 70, x)), y, size, color, age: 0, dur: 1.15 });
   }
   function banner(title, sub, dur = 1.5) { G.banner = { title, sub, age: 0, dur }; }
   function saveBest() {
-    if (G.score > G.best) { G.best = G.score; store.set('best', G.best); }
+    if (G.score > G.best) { G.best = G.score; store.set(bestKey(), G.best); }
   }
 
   function startLevel(n, carry = 0) {
@@ -989,7 +1017,7 @@
     const popped = group.length;
     const hamanDropped = dropped.filter(f => f.t === HAMAN).length;
     const gained = popped * 10 + (dropped.length ? 20 * dropped.length * dropped.length : 0) + hamanDropped * 250;
-    if (gained) addScore(gained);
+    const earned = gained ? addScore(gained) : 0;
 
     if (!popped) {
       G.clock -= G.cfg.missCost;
@@ -1003,7 +1031,7 @@
       else if (Math.random() < 0.45) say(pick(LINES.small), x, y - 10, 20, '#ffe7a8');
       if (dropped.length) { Sound.drop(dropped.length); vibrate(25); }
       if (hamanDropped) { Sound.grogger(); say('Booo, Haman!', W / 2, 300, 26, '#c8e6a0'); vibrate([30, 30, 30, 30, 30]); }
-      if (gained >= 50) say('+' + fmt(gained), x, y + 22, 16, '#ffffff');
+      if (earned >= 50) say('+' + fmt(earned), x, y + 22, 16, '#ffffff');
     }
 
     if (!presentColors().length) { levelClear(); return; }
@@ -1029,8 +1057,7 @@
     G.gridVer++;
     const minutes = Math.max(0, Math.round(G.clock));
     const bonus = 500 + G.level * 250 + minutes * 50 + hamans * 250;
-    addScore(bonus);
-    G.clearInfo = { bonus, minutes, level: G.level };
+    G.clearInfo = { bonus: addScore(bonus), minutes, level: G.level };
     G.maxLevel = Math.max(G.maxLevel, G.level + 1); store.set('maxLevel', G.maxLevel);
     saveBest();
     Sound.clear(); if (hamans) Sound.grogger();
@@ -1048,9 +1075,10 @@
 
   // ---------- UI screens ----------
   const $ = id => document.getElementById(id);
-  const screens = { title: $('screen-title'), pause: $('screen-pause'), level: $('screen-level'), over: $('screen-over') };
+  const screens = { title: $('screen-title'), diff: $('screen-diff'), pause: $('screen-pause'), level: $('screen-level'), over: $('screen-over') };
   function showScreen(name) {
-    for (const k in screens) screens[k].hidden = k !== name;
+    // the difficulty picker opens on top of the title screen
+    for (const k in screens) screens[k].hidden = !(k === name || (name === 'diff' && k === 'title'));
     $('hud-buttons').hidden = false;
     $('btn-pause').hidden = !(G.state === 'play' || G.state === 'clearing' || G.state === 'dying');
     if (name) {
@@ -1068,8 +1096,34 @@
     cont.textContent = `Continue at Level ${G.maxLevel}`;
     const best = $('best-line');
     best.hidden = !G.best;
-    best.textContent = `Best: ${fmt(G.best)} gelt`;
+    best.textContent = `Best on ${diff().name}: ${fmt(G.best)} gelt`;
     showScreen('title');
+  }
+  function buildDiffList() {
+    const list = $('diff-list');
+    list.innerHTML = '';
+    DIFFS.forEach((d, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'diff'; b.dataset.diff = d.id;
+      b.setAttribute('aria-pressed', String(i === diffIdx));
+      if (i === diffIdx) b.setAttribute('data-focus', '');
+      const name = document.createElement('span'); name.className = 'diff-name'; name.textContent = d.name;
+      const desc = document.createElement('span'); desc.className = 'diff-desc'; desc.textContent = d.desc;
+      const mult = document.createElement('span'); mult.className = 'diff-mult'; mult.textContent = `${d.multLabel} gelt`;
+      b.append(name, desc, mult);
+      b.addEventListener('click', () => {
+        diffIdx = i; store.set('diff', i);
+        G.best = loadBest();
+        startLevel(G.pendingLevel);
+      });
+      list.append(b);
+    });
+  }
+  function showDiff(level) {
+    G.pendingLevel = level;
+    $('diff-sub').textContent = level > 1 ? `Starting at Level ${level}, ${stopName(level)}` : 'Starting in Toledo';
+    buildDiffList();
+    showScreen('diff');
   }
   function showLevelDone() {
     const i = G.clearInfo;
@@ -1085,6 +1139,7 @@
   function showGameOver() {
     $('over-gelt').textContent = fmt(G.score);
     $('over-best').textContent = fmt(G.best);
+    $('over-best-label').textContent = `Best on ${diff().name}`;
     $('over-level').textContent = `Level ${G.level}, ${stopName(G.level)}`;
     $('btn-retry').textContent = `Try Level ${G.level} again`;
     G.state = 'over';
@@ -1143,6 +1198,7 @@
 
   window.addEventListener('keydown', e => {
     const k = e.key;
+    if (k === 'Escape' && !screens.diff.hidden) { showTitle(); return; }
     if (k === 'p' || k === 'P' || k === 'Escape') { togglePause(); return; }
     if (k === 'm' || k === 'M') { Sound.toggle(); syncMute(); return; }
     if (k === 'n' || k === 'N') { Music.toggle(); syncMusic(); return; }
@@ -1158,8 +1214,9 @@
   });
   document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') togglePause(); });
 
-  $('btn-play').addEventListener('click', () => startLevel(1));
-  $('btn-continue').addEventListener('click', () => startLevel(G.maxLevel));
+  $('btn-play').addEventListener('click', () => showDiff(1));
+  $('btn-continue').addEventListener('click', () => showDiff(G.maxLevel));
+  $('btn-diff-back').addEventListener('click', showTitle);
   $('btn-pause').addEventListener('click', togglePause);
   $('btn-mute').addEventListener('click', () => { Sound.init(); Sound.toggle(); syncMute(); });
   $('btn-resume').addEventListener('click', togglePause);
@@ -1177,15 +1234,17 @@
     if (key === aimCache.key) return aimCache;
     let x = LX, y = LY, vx = Math.cos(G.angle), vy = -Math.sin(G.angle);
     const pts = [];
-    let travelled = 0, nextDot = 34, end = null;
+    let travelled = 0, nextDot = 34, end = null, firstBounce = -1;
     for (let i = 0; i < 420; i++) {
       x += vx * 4; y += vy * 4; travelled += 4;
-      if (x < FIELD_L + R) { x = 2 * (FIELD_L + R) - x; vx = -vx; }
-      else if (x > FIELD_R - R) { x = 2 * (FIELD_R - R) - x; vx = -vx; }
+      let bounced = false;
+      if (x < FIELD_L + R) { x = 2 * (FIELD_L + R) - x; vx = -vx; bounced = true; }
+      else if (x > FIELD_R - R) { x = 2 * (FIELD_R - R) - x; vx = -vx; bounced = true; }
+      if (bounced && firstBounce < 0) firstBounce = pts.length;
       if (y - R <= wallBottom() || hitsAny(x, y)) { end = { x, y }; break; }
       if (travelled >= nextDot) { pts.push([x, y]); nextDot += 15; }
     }
-    aimCache = { key, pts, ghost: end ? snapCell(end.x, end.y) : null };
+    aimCache = { key, pts, firstBounce, ghost: end ? snapCell(end.x, end.y) : null };
     return aimCache;
   }
 
@@ -1281,13 +1340,17 @@
     }
   }
   function drawAim() {
+    const mode = diff().guide;
+    if (mode === 'none') return;
     const a = getAim();
-    a.pts.forEach(([x, y], i) => {
-      const al = Math.max(0.12, 0.85 - i * 0.022);
+    const short = mode === 'short';
+    const pts = short ? a.pts.slice(0, Math.min(a.firstBounce < 0 ? a.pts.length : a.firstBounce, 12)) : a.pts;
+    pts.forEach(([x, y], i) => {
+      const al = short ? Math.max(0.1, 0.8 - i * 0.065) : Math.max(0.12, 0.85 - i * 0.022);
       ctx.fillStyle = `rgba(255,240,200,${al})`;
       circ(ctx, x, y, 2.6); ctx.fill();
     });
-    if (a.ghost) {
+    if (!short && a.ghost) {
       const gx = cellX(a.ghost.r, a.ghost.c), gy = cellY(a.ghost.r);
       drawSprite(G.cur, gx, gy, 1, 0.3);
       ctx.strokeStyle = 'rgba(255,240,200,.55)'; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
@@ -1298,7 +1361,7 @@
     ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
     ctx.font = `600 11px ${FONT}`; ctx.fillStyle = 'rgba(239,226,194,.62)';
-    ctx.fillText(`LEVEL ${G.level}`, 22, 24);
+    ctx.fillText(`LEVEL ${G.level} · ${diff().name.toUpperCase()}`, 22, 24);
     let size = 19;
     const name = stopName(G.level);
     ctx.font = `700 ${size}px ${FONT}`;
@@ -1563,5 +1626,6 @@
     G, startLevel, makeIcon,
     aim(deg) { G.angle = Math.min(A_MAX, Math.max(A_MIN, deg * Math.PI / 180)); },
     fire, swap, Music,
+    setDiff(i) { diffIdx = i; G.best = loadBest(); },
   };
 })();

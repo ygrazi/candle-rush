@@ -19,6 +19,16 @@ It opens full screen like a normal app, and after the first visit it works offli
 - Match 3 or more of the same character to pop them. Anything left hanging falls for big bonus gelt.
 - **Candles In:** every miss costs minutes on the Shabbat clock (18 minutes, like candle lighting). Dropping pieces buys time back. At zero, the Jerusalem stone wall comes down a row.
 - Tap **Next** to swap your current piece.
+- **Difficulty:** pick one each time you tap Play or Continue. Best scores are kept per difficulty.
+
+| Difficulty | Aim guide | Candle clock | Gelt |
+|---|---|---|---|
+| Kids | Full path + landing spot | Misses cost less, fewer characters | ½× |
+| Easy | Full path + landing spot | Normal | 1× |
+| Medium | Short guide, up to the first bounce | Normal | 1½× |
+| Hard | None | Faster, an extra brick | 2× |
+| Erev Pesach | None | Fastest, extra bricks and a Haman | 3× |
+
 - **Music:** an original klezmer/Sephardic-style tune that speeds up as candle lighting gets close. Turn it on or off from the title screen or the pause menu.
 - Keyboard: arrows to aim, Space to shoot, X to swap, P to pause, M to mute everything, N for music on/off.
 

@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="style.css?v=0.3.0">
+<link rel="stylesheet" href="style.css?v=0.4.0">
 </head>
 <body>
 <div id="app">
@@ -53,6 +53,15 @@
         <span>Music on</span>
       </button>
       <p class="credit">Created by Yitzhak Grazi</p>
+    </section>
+
+    <section class="screen dim" id="screen-diff" aria-label="Choose difficulty" hidden>
+      <div class="card">
+        <h2>How hard?</h2>
+        <p id="diff-sub">Starting in Toledo</p>
+        <div class="diff-list" id="diff-list"></div>
+        <button class="btn secondary" id="btn-diff-back" type="button">Back</button>
+      </div>
     </section>
 
     <section class="screen dim" id="screen-pause" aria-label="Paused" hidden>
@@ -94,7 +103,7 @@
         <p>The stone came all the way down.</p>
         <dl class="stats">
           <dt>Gelt</dt><dd id="over-gelt">0</dd>
-          <dt>Best</dt><dd id="over-best">0</dd>
+          <dt id="over-best-label">Best</dt><dd id="over-best">0</dd>
           <dt>Reached</dt><dd id="over-level">Level 1</dd>
         </dl>
         <div class="buttons">
@@ -105,7 +114,7 @@
     </section>
   </div>
 </div>
-<script src="game.js?v=0.3.0"></script>
+<script src="game.js?v=0.4.0"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
