@@ -19,7 +19,8 @@ It opens full screen like a normal app, and after the first visit it works offli
 - Match 3 or more of the same character to pop them. Anything left hanging falls for big bonus gelt.
 - **Candles In:** every miss costs minutes on the Shabbat clock (18 minutes, like candle lighting). Dropping pieces buys time back. At zero, the Jerusalem stone wall comes down a row.
 - Tap **Next** to swap your current piece.
-- Keyboard: arrows to aim, Space to shoot, X to swap, P to pause, M to mute.
+- **Music:** an original klezmer/Sephardic-style tune that speeds up as candle lighting gets close. Turn it on or off from the title screen or the pause menu.
+- Keyboard: arrows to aim, Space to shoot, X to swap, P to pause, M to mute everything, N for music on/off.
 
 ## The cast
 

@@ -1,12 +1,12 @@
 // Offline support. Same-origin files: network first (so updates show up), cache as fallback.
 // Google Fonts: cache first.
 // When releasing, bump CACHE here and the ?v= numbers in index.html together.
-const CACHE = 'candle-rush-v0.2.1';
+const CACHE = 'candle-rush-v0.3.0';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=0.2.1',
-  './game.js?v=0.2.1',
+  './style.css?v=0.3.0',
+  './game.js?v=0.3.0',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

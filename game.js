@@ -118,6 +118,8 @@
     }
     return {
       init,
+      get ctx() { return ac; },
+      get bus() { return master; },
       get muted() { return muted; },
       toggle() { muted = !muted; store.set('muted', muted); if (master) master.gain.value = muted ? 0 : 0.55; return muted; },
       shoot() { noise(0.1, { vol: 0.1, freq: 2600, q: 0.8 }); tone(300, 0.12, { type: 'triangle', vol: 0.12, to: 640 }); },
@@ -131,6 +133,154 @@
       swap() { tone(880, 0.05, { type: 'triangle', vol: 0.08 }); tone(1100, 0.05, { type: 'triangle', vol: 0.08, at: 0.05 }); },
       clear() { [0, 2, 4, 5, 7, 9, 12].forEach((n, i) => tone(FREY[n], 0.3, { type: 'triangle', vol: 0.18, at: i * 0.09 })); },
       over() { tone(392, 0.35, { type: 'triangle', vol: 0.2, to: 370 }); tone(330, 0.7, { type: 'triangle', vol: 0.2, at: 0.35, to: 247 }); },
+    };
+  })();
+
+  // ---------- Background music ----------
+  // An original tune in D freygish (Ahava Rabbah), played live: clarinet-style lead with a little
+  // "krekhts" sob on long notes, oom-pah bass and accordion stabs, doumbek on the maqsum rhythm.
+  // No audio files. Tempo climbs as candle lighting gets close.
+  const Music = (() => {
+    const VOL = 0.5;
+    const TEMPO = { calm: 92, play: 108, hurry: 128, panic: 148 };
+    const NOTE = { D4: 62, Eb4: 63, Fs4: 66, G4: 67, A4: 69, Bb4: 70, C5: 72, D5: 74, Eb5: 75, Fs5: 78, G5: 79, A5: 81 };
+    const CHORD = {
+      D: { bass: [50, 57], triad: [62, 66, 69] },
+      Cm: { bass: [48, 55], triad: [60, 63, 67] },
+      Gm: { bass: [43, 50], triad: [62, 67, 70] },
+      Eb: { bass: [51, 58], triad: [63, 67, 70] },
+    };
+    // Melody as [note, length in eighth notes]. Every bar adds up to 8.
+    const A1 = [['A4', 2], ['D5', 1], ['Eb5', 1], ['Fs5', 2], ['Eb5', 1], ['D5', 1],
+      ['Eb5', 1], ['D5', 1], ['C5', 1], ['Bb4', 1], ['A4', 4],
+      ['G4', 1], ['A4', 1], ['Bb4', 1], ['C5', 1], ['Eb5', 2], ['D5', 1], ['C5', 1]];
+    const A_END1 = [['D5', 1], ['C5', 1], ['Bb4', 1], ['A4', 1], ['Fs4', 1], ['Eb4', 1], ['D4', 2]];
+    const A_END2 = [['D5', 1], ['C5', 1], ['Bb4', 1], ['A4', 1], ['Bb4', 1], ['C5', 1], ['D5', 2]];
+    const B1 = [['D5', 2], ['G5', 2], ['Fs5', 1], ['G5', 1], ['A5', 2],
+      ['G5', 1], ['Fs5', 1], ['Eb5', 1], ['D5', 1], ['Fs5', 2], ['D5', 2],
+      ['Eb5', 1], ['D5', 1], ['C5', 1], ['D5', 1], ['Eb5', 2], ['Fs5', 1], ['Eb5', 1]];
+    const B_END1 = [['D5', 3], ['A4', 1], ['D5', 4]];
+    const B_END2 = [['D5', 2], ['A4', 1], ['Fs4', 1], ['D4', 4]];
+    const MELODY = [...A1, ...A_END1, ...A1, ...A_END2, ...B1, ...B_END1, ...B1, ...B_END2];
+    const BARS = ['D', 'D', 'Cm', 'D', 'D', 'D', 'Cm', 'D', 'Gm', 'D', 'Eb', 'D', 'Gm', 'D', 'Eb', 'D'];
+    const STEPS = BARS.length * 8;
+    const mel = new Array(STEPS).fill(null);
+    { let s = 0; for (const [n, len] of MELODY) { mel[s] = { m: NOTE[n], len }; s += len; } }
+    const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+    let bus = null, noiseBuf = null, timer = 0, playing = false;
+    let step = 0, nextTime = 0, tempo = TEMPO.calm, target = TEMPO.calm, drums = false;
+    let enabled = store.get('music', true);
+
+    function setup() {
+      const ac = Sound.ctx;
+      if (bus || !ac) return !!bus;
+      bus = ac.createGain(); bus.gain.value = 0; bus.connect(Sound.bus);
+      noiseBuf = ac.createBuffer(1, Math.floor(ac.sampleRate * 0.2), ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return true;
+    }
+    function env(g, t, peak, attack, hold, release) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + attack);
+      g.gain.setValueAtTime(peak, t + attack + hold);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
+      return t + attack + hold + release;
+    }
+    function clarinet(ac, f, t, dur, sob) {
+      const o = ac.createOscillator(); o.type = 'square';
+      if (sob) { o.frequency.setValueAtTime(f * 1.06, t); o.frequency.exponentialRampToValueAtTime(f, t + 0.07); }
+      else o.frequency.setValueAtTime(f, t);
+      const lfo = ac.createOscillator(); lfo.frequency.value = 5.5;
+      const depth = ac.createGain(); depth.gain.value = f * 0.007;
+      lfo.connect(depth); depth.connect(o.frequency);
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1700; lp.Q.value = 0.8;
+      const g = ac.createGain();
+      const end = env(g, t, 0.12, 0.025, Math.max(0.02, dur - 0.1), 0.07);
+      o.connect(lp); lp.connect(g); g.connect(bus);
+      o.start(t); lfo.start(t); o.stop(end + 0.02); lfo.stop(end + 0.02);
+    }
+    function bass(ac, f, t, dur) {
+      const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+      const g = ac.createGain();
+      const end = env(g, t, 0.28, 0.01, dur * 0.4, dur * 0.5);
+      o.connect(g); g.connect(bus); o.start(t); o.stop(end + 0.02);
+    }
+    function stab(ac, notes, t) {
+      const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1300;
+      const g = ac.createGain();
+      const end = env(g, t, 0.05, 0.008, 0.05, 0.08);
+      lp.connect(g); g.connect(bus);
+      for (const m of notes) { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); o.connect(lp); o.start(t); o.stop(end + 0.02); }
+    }
+    function dum(ac, t) {
+      const o = ac.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(130, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.16);
+      const g = ac.createGain();
+      const end = env(g, t, 0.4, 0.004, 0.02, 0.16);
+      o.connect(g); g.connect(bus); o.start(t); o.stop(end + 0.02);
+    }
+    function tek(ac, t, vol = 0.1) {
+      const s = ac.createBufferSource(); s.buffer = noiseBuf;
+      const hp = ac.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 3500;
+      const g = ac.createGain();
+      const end = env(g, t, vol, 0.002, 0.005, 0.04);
+      s.connect(hp); hp.connect(g); g.connect(bus); s.start(t); s.stop(end + 0.02);
+    }
+    function playStep(ac, i, t, eighth) {
+      const n = mel[i];
+      if (n) clarinet(ac, mtof(n.m), t, n.len * eighth * 0.95, n.len >= 2);
+      const pos = i % 8, ch = CHORD[BARS[(i / 8) | 0]];
+      if (pos === 0) bass(ac, mtof(ch.bass[0]), t, eighth * 2);
+      if (pos === 4) bass(ac, mtof(ch.bass[1]), t, eighth * 2);
+      if (pos === 2 || pos === 6) stab(ac, ch.triad, t);
+      if (drums) {
+        if (pos === 0 || pos === 4) dum(ac, t);          // maqsum: DUM tek . tek DUM . tek .
+        if (pos === 1 || pos === 3 || pos === 6) tek(ac, t);
+        if (tempo > 120 && (pos === 5 || pos === 7)) tek(ac, t, 0.06);
+      }
+    }
+    function tick() {
+      const ac = Sound.ctx;
+      if (!ac || !playing) return;
+      if (nextTime < ac.currentTime) nextTime = ac.currentTime + 0.03; // skip ahead after a stall instead of bursting
+      while (nextTime < ac.currentTime + 0.15) {
+        tempo += (target - tempo) * 0.08;
+        const eighth = 30 / tempo;
+        playStep(ac, step, nextTime, eighth);
+        nextTime += eighth;
+        step = (step + 1) % STEPS;
+      }
+    }
+    function start() {
+      if (!setup()) return;
+      const ac = Sound.ctx;
+      playing = true; step = 0; tempo = target;
+      nextTime = ac.currentTime + 0.08;
+      bus.gain.cancelScheduledValues(ac.currentTime);
+      bus.gain.setTargetAtTime(VOL, ac.currentTime, 0.05);
+      clearInterval(timer); timer = setInterval(tick, 25);
+      tick();
+    }
+    function stop() {
+      playing = false; clearInterval(timer);
+      const ac = Sound.ctx;
+      if (bus && ac) { bus.gain.cancelScheduledValues(ac.currentTime); bus.gain.setTargetAtTime(0, ac.currentTime, 0.04); }
+    }
+    return {
+      get enabled() { return enabled; },
+      get playing() { return playing; },
+      toggle() { enabled = !enabled; store.set('music', enabled); return enabled; },
+      // Called every frame. want: should this game state have music. mood: calm | play | hurry | panic
+      update(want, mood) {
+        target = TEMPO[mood] || TEMPO.play;
+        drums = mood !== 'calm';
+        const ac = Sound.ctx;
+        const go = want && enabled && !Sound.muted && !!ac && ac.state === 'running';
+        if (go && !playing) start();
+        else if (!go && playing) stop();
+      },
     };
   })();
 
@@ -901,7 +1051,8 @@
   const screens = { title: $('screen-title'), pause: $('screen-pause'), level: $('screen-level'), over: $('screen-over') };
   function showScreen(name) {
     for (const k in screens) screens[k].hidden = k !== name;
-    $('hud-buttons').hidden = !(G.state === 'play' || G.state === 'clearing' || G.state === 'dying');
+    $('hud-buttons').hidden = false;
+    $('btn-pause').hidden = !(G.state === 'play' || G.state === 'clearing' || G.state === 'dying');
     if (name) {
       const b = screens[name].querySelector('[data-focus]');
       if (b) setTimeout(() => { try { b.focus({ preventScroll: true }); } catch (e) { /* ignore */ } }, 30);
@@ -948,6 +1099,12 @@
     $('ico-muted').hidden = !Sound.muted;
     $('btn-mute').setAttribute('aria-label', Sound.muted ? 'Turn sound on' : 'Mute sound');
   }
+  function syncMusic() {
+    document.querySelectorAll('[data-music]').forEach(b => {
+      b.setAttribute('aria-pressed', String(Music.enabled));
+      b.querySelector('span').textContent = Music.enabled ? 'Music on' : 'Music off';
+    });
+  }
 
   // ---------- Input ----------
   const keys = { left: false, right: false };
@@ -988,6 +1145,7 @@
     const k = e.key;
     if (k === 'p' || k === 'P' || k === 'Escape') { togglePause(); return; }
     if (k === 'm' || k === 'M') { Sound.toggle(); syncMute(); return; }
+    if (k === 'n' || k === 'N') { Music.toggle(); syncMusic(); return; }
     if (G.state !== 'play') return;
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; e.preventDefault(); }
     else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); }
@@ -1010,6 +1168,7 @@
   $('btn-next').addEventListener('click', () => startLevel(G.level + 1, G.score));
   $('btn-retry').addEventListener('click', () => startLevel(G.level, G.levelStartScore));
   $('btn-over-home').addEventListener('click', showTitle);
+  document.querySelectorAll('[data-music]').forEach(b => b.addEventListener('click', () => { Sound.init(); Music.toggle(); syncMusic(); }));
 
   // ---------- Update ----------
   let aimCache = { key: '', pts: [], ghost: null };
@@ -1032,6 +1191,8 @@
 
   function update(dt) {
     G.t += dt;
+    const mood = G.state === 'title' ? 'calm' : G.clock <= 3 ? 'panic' : G.clock <= 6 ? 'hurry' : 'play';
+    Music.update(G.state === 'title' || G.state === 'play', mood);
     if (G.state === 'paused') return;
     if (G.state === 'play') {
       if (keys.left) G.angle = Math.min(A_MAX, G.angle + 1.8 * dt);
@@ -1393,6 +1554,7 @@
   buildCast();
   $('logo-candles').src = makeLogoCandles();
   syncMute();
+  syncMusic();
   showTitle();
   requestAnimationFrame(frame);
 
@@ -1400,6 +1562,6 @@
   window.CandleRush = {
     G, startLevel, makeIcon,
     aim(deg) { G.angle = Math.min(A_MAX, Math.max(A_MIN, deg * Math.PI / 180)); },
-    fire, swap,
+    fire, swap, Music,
   };
 })();

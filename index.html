@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="style.css?v=0.2.1">
+<link rel="stylesheet" href="style.css?v=0.3.0">
 </head>
 <body>
 <div id="app">
@@ -48,6 +48,10 @@
       </div>
       <p class="best" id="best-line" hidden></p>
       <p class="howto">Aim and let go. Match 3 to pop them. Every miss brings candle lighting closer, and then the Jerusalem stone comes down a row. Drop Haman for bonus gelt.</p>
+      <button class="pill" type="button" data-music aria-pressed="true">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
+        <span>Music on</span>
+      </button>
       <p class="credit">Created by Yitzhak Grazi</p>
     </section>
 
@@ -55,6 +59,10 @@
       <div class="card">
         <h2>Paused</h2>
         <p>The candles will wait.</p>
+        <button class="pill" type="button" data-music aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
+          <span>Music on</span>
+        </button>
         <div class="buttons">
           <button class="btn" id="btn-resume" type="button" data-focus>Resume</button>
           <button class="btn secondary" id="btn-restart" type="button">Restart level</button>
@@ -97,7 +105,7 @@
     </section>
   </div>
 </div>
-<script src="game.js?v=0.2.1"></script>
+<script src="game.js?v=0.3.0"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

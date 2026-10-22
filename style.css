@@ -62,6 +62,7 @@ body {
   right: calc(var(--ox) + var(--u) * 16);
   display: flex;
   gap: calc(var(--u) * 8);
+  z-index: 4;
 }
 .icon-btn {
   width: calc(var(--u) * 36);
@@ -77,7 +78,28 @@ body {
   touch-action: manipulation;
 }
 .icon-btn svg { width: 55%; height: 55%; }
-.icon-btn:focus-visible, .btn:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
+.icon-btn:focus-visible, .btn:focus-visible, .pill:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
+
+/* Music on/off */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: calc(var(--u) * 6);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: calc(var(--u) * 13.5);
+  padding: calc(var(--u) * 6) calc(var(--u) * 15);
+  border-radius: 999px;
+  border: calc(var(--u) * 1.5) solid rgba(239, 226, 194, .45);
+  background: rgba(239, 226, 194, .12);
+  color: var(--stone);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.pill svg { width: calc(var(--u) * 16); height: calc(var(--u) * 16); }
+.pill[aria-pressed="false"] { background: transparent; color: rgba(239, 226, 194, .6); border-style: dashed; }
+.card .pill { color: var(--ink); border-color: rgba(23, 33, 77, .35); background: rgba(23, 33, 77, .08); }
+.card .pill[aria-pressed="false"] { color: rgba(23, 33, 77, .55); background: transparent; }
 
 /* Screens */
 .screen {
@@ -92,6 +114,7 @@ body {
   text-align: center;
   padding: calc(var(--u) * 18) calc(var(--u) * 22);
   touch-action: manipulation;
+  z-index: 3;
 }
 .title-screen {
   gap: calc(var(--u) * 9);
@@ -173,7 +196,7 @@ body {
 }
 
 /* Cards (pause, level done, game over) */
-.dim { background: rgba(8, 13, 32, .72); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.dim { background: rgba(8, 13, 32, .72); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); z-index: 5; }
 .card {
   position: relative;
   width: calc(var(--u) * 310);
