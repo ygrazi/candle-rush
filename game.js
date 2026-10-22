@@ -1,4 +1,4 @@
-/* Candle Rush v0.5
+/* Candle Rush v0.6
    Created by Yitzhak Grazi.
    A bubble shooter starring the mishpacha.
    Plain canvas, no libraries. Logical board is 400 x 680 and scales to any screen. */
@@ -73,7 +73,9 @@
   // ---------- Sound (synthesized, no files) ----------
   const Sound = (() => {
     let ac = null, master = null, noiseBuf = null;
-    let muted = store.get('muted', false);
+    // Sound effects on/off (music has its own switch). Older versions had one "muted" setting.
+    let sfxOn = store.get('sfx', null);
+    if (sfxOn === null) sfxOn = !store.get('muted', false);
     // Freygish (Ahava Rabbah) scale, E based: the klezmer sound
     const FREY = [329.63, 349.23, 415.30, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 830.61, 880.00, 987.77, 1046.5];
     function init() {
@@ -83,7 +85,7 @@
           if (!AC) return;
           ac = new AC();
           master = ac.createGain();
-          master.gain.value = muted ? 0 : 0.55;
+          master.gain.value = 0.55;
           master.connect(ac.destination);
           noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
           const d = noiseBuf.getChannelData(0);
@@ -93,7 +95,7 @@
       } catch (e) { /* audio unavailable */ }
     }
     function tone(f, dur, o = {}) {
-      if (!ac || muted) return;
+      if (!ac || !sfxOn) return;
       const { type = 'sine', vol = 0.25, at = 0, to = null, attack = 0.006 } = o;
       const t0 = ac.currentTime + at;
       const osc = ac.createOscillator(), g = ac.createGain();
@@ -106,7 +108,7 @@
       osc.start(t0); osc.stop(t0 + dur + 0.03);
     }
     function noise(dur, o = {}) {
-      if (!ac || muted) return;
+      if (!ac || !sfxOn) return;
       const { vol = 0.2, at = 0, freq = 1200, q = 1, type = 'bandpass' } = o;
       const t0 = ac.currentTime + at;
       const s = ac.createBufferSource(); s.buffer = noiseBuf;
@@ -120,8 +122,8 @@
       init,
       get ctx() { return ac; },
       get bus() { return master; },
-      get muted() { return muted; },
-      toggle() { muted = !muted; store.set('muted', muted); if (master) master.gain.value = muted ? 0 : 0.55; return muted; },
+      get sfx() { return sfxOn; },
+      setSfx(v) { sfxOn = !!v; store.set('sfx', sfxOn); },
       shoot() { noise(0.1, { vol: 0.1, freq: 2600, q: 0.8 }); tone(300, 0.12, { type: 'triangle', vol: 0.12, to: 640 }); },
       land() { tone(150, 0.12, { vol: 0.2, to: 90 }); },
       bounce() { tone(540, 0.04, { type: 'square', vol: 0.03 }); },
@@ -170,7 +172,8 @@
 
     let bus = null, noiseBuf = null, timer = 0, playing = false;
     let step = 0, nextTime = 0, tempo = TEMPO.calm, target = TEMPO.calm, drums = false;
-    let enabled = store.get('music', true);
+    let enabled = store.get('music', null);
+    if (enabled === null) enabled = !store.get('muted', false);
 
     function setup() {
       const ac = Sound.ctx;
@@ -272,12 +275,13 @@
       get enabled() { return enabled; },
       get playing() { return playing; },
       toggle() { enabled = !enabled; store.set('music', enabled); return enabled; },
+      setEnabled(v) { enabled = !!v; store.set('music', enabled); },
       // Called every frame. want: should this game state have music. mood: calm | play | hurry | panic
       update(want, mood) {
         target = TEMPO[mood] || TEMPO.play;
         drums = mood !== 'calm';
         const ac = Sound.ctx;
-        const go = want && enabled && !Sound.muted && !!ac && ac.state === 'running';
+        const go = want && enabled && !!ac && ac.state === 'running';
         if (go && !playing) start();
         else if (!go && playing) stop();
       },
@@ -948,7 +952,7 @@
     cur: 0, next: 1, angle: Math.PI / 2, shot: null, busy: 0, timer: 0, dieDropped: false,
     fx: [], falling: [], parts: [], texts: [], banner: null, shake: 0, candles: 0, t: 0,
     best: loadBest(), maxLevel: store.get('maxLevel', 1), clearInfo: null, pendingLevel: 1,
-    recorded: false, lastEntry: null,
+    recorded: false, lastEntry: null, postedScore: 0,
   };
 
   function pickType(allowHamsa = true) {
@@ -981,8 +985,10 @@
     G.cur = pickType(false); G.next = pickType(false);
     G.angle = Math.PI / 2; G.candles = 0; G.dieDropped = false;
     G.state = 'play'; G.busy = 0.45; G.recorded = false;
+    if (!carry) G.postedScore = 0; // a brand-new game
     banner(`Level ${n}`, stopName(n));
     showScreen(null);
+    saveRun();
   }
 
   function fire() {
@@ -1094,6 +1100,7 @@
     if (G.clock <= 0) ceilingDrop();
     fixQueue();
     if (crossed()) gameOver();
+    if (G.state === 'play') saveRun();
   }
 
   function crossed() {
@@ -1121,17 +1128,74 @@
     say('Mazal Tov!', W / 2, 280, 40, '#ffb02e');
     G.state = 'clearing'; G.timer = 1.4;
   }
-  // A game ends at game over, End game, or switching difficulty mid-game. Saves the score once.
-  function recordGame() {
-    if (G.recorded || G.score <= 0) return null;
-    G.recorded = true;
-    saveBest();
-    const id = diff().id;
-    const e = { name: playerName() || 'Player', score: G.score, level: G.level, at: Date.now() };
+  function postScore(id, score, level) {
+    const e = { name: playerName() || 'Player', score, level, at: Date.now() };
     const ent = { id, e, rank: addLocalScore(id, e), doc: null, globalRank: 0 };
     G.lastEntry = ent;
     sendScore(id, e).then(doc => { ent.doc = doc; if (doc) onScoreSent(ent); });
     return ent;
+  }
+  // A game ends at game over, End game, or switching difficulty mid-game. Saves the score once.
+  function recordGame() {
+    clearRun();
+    if (G.recorded || G.score <= 0 || G.score <= G.postedScore) return null;
+    G.recorded = true;
+    G.postedScore = G.score;
+    saveBest();
+    return postScore(diff().id, G.score, G.level);
+  }
+
+  // ---------- Unfinished game (resume later) ----------
+  // The game saves itself after every shot, on pause and when the app is closed or hidden.
+  // Next launch, the title screen offers Resume with the exact board, gelt and difficulty.
+  const savedRun = () => { const r = store.get('run', null); return r && r.v === 1 ? r : null; };
+  function clearRun() { store.set('run', null); }
+  function saveRun() {
+    if (G.state === 'play' || G.state === 'paused') {
+      let cur = G.cur, next = G.next;
+      if (G.shot) { next = G.cur; cur = G.shot.t; } // a piece in the air goes back in the launcher
+      store.set('run', {
+        v: 1, diff: diff().id, level: G.level, score: G.score, levelStartScore: G.levelStartScore,
+        postedScore: G.postedScore || 0, grid: G.grid.map(r => r.slice()), wallRows: G.wallRows,
+        clock: G.clock, cur, next, at: Date.now(),
+      });
+    } else if (G.state === 'levelup') {
+      store.set('run', { v: 1, between: true, diff: diff().id, level: G.level + 1, score: G.score, postedScore: G.postedScore || 0, at: Date.now() });
+    }
+  }
+  function useDiff(id) {
+    const i = DIFFS.findIndex(d => d.id === id);
+    if (i >= 0 && i !== diffIdx) { diffIdx = i; store.set('diff', i); }
+    G.best = loadBest();
+  }
+  function resumeRun() {
+    const r = savedRun();
+    if (!r) { showTitle(); return; }
+    useDiff(r.diff);
+    if (r.between) { startLevel(r.level, r.score); G.postedScore = r.postedScore || 0; return; }
+    startLevel(r.level, r.levelStartScore);
+    const g = emptyGrid();
+    (r.grid || []).forEach((row, ri) => row.forEach((t, ci) => { if (ri < MAX_ROWS && ci < rowCols(ri)) g[ri][ci] = t; }));
+    G.grid = g; G.gridVer++;
+    G.wallRows = G.wallVis = r.wallRows || 0;
+    G.clock = r.clock;
+    G.score = G.shown = r.score;
+    G.postedScore = r.postedScore || 0;
+    G.cur = r.cur; G.next = r.next;
+    if (!presentColors().length) { startLevel(r.level + 1, r.score); return; }
+    fixQueue();
+    banner(`Level ${r.level}`, 'Welcome back!');
+    saveRun();
+  }
+  // Starting a new game while an unfinished one is saved: put that game's score on the high scores first
+  function finishSavedRun() {
+    const r = savedRun();
+    if (!r) return null;
+    clearRun();
+    if (!(r.score > 0) || r.score <= (r.postedScore || 0)) return null;
+    if (store.get('best.' + r.diff, 0) < r.score) store.set('best.' + r.diff, r.score);
+    G.best = loadBest();
+    return postScore(r.diff, r.score, r.level);
   }
   function gameOver() {
     if (G.state === 'dying') return;
@@ -1164,8 +1228,18 @@
     G.cfg = levelCfg(1); G.grid = buildLevel(1); G.gridVer++;
     G.wallRows = 0; G.wallVis = 0; G.clock = CLOCK_MAX; G.shot = null;
     G.fx = []; G.falling = []; G.parts = []; G.texts = []; G.banner = null;
-    const cont = $('btn-continue');
-    cont.hidden = G.maxLevel <= 1;
+    const run = savedRun();
+    const resume = $('btn-resume-run'), play = $('btn-play'), cont = $('btn-continue');
+    resume.hidden = !run;
+    if (run) {
+      const d = DIFFS.find(x => x.id === run.diff) || diff();
+      $('resume-sub').textContent = `Level ${run.level} · ${d.name} · ${fmt(run.score)} gelt`;
+    }
+    resume.toggleAttribute('data-focus', !!run);
+    play.toggleAttribute('data-focus', !run);
+    play.classList.toggle('secondary', !!run);
+    play.textContent = run ? 'New game' : 'Play';
+    cont.hidden = !!run || G.maxLevel <= 1;
     cont.textContent = `Continue at Level ${G.maxLevel}`;
     syncPlayerLine();
     showScreen('title');
@@ -1277,6 +1351,7 @@
       const mult = document.createElement('span'); mult.className = 'diff-mult'; mult.textContent = `${d.multLabel} gelt`;
       b.append(name, desc, mult);
       b.addEventListener('click', () => {
+        finishSavedRun(); // starting fresh: an unfinished game's score goes on the high scores first
         diffIdx = i; store.set('diff', i);
         G.best = loadBest();
         startLevel(G.pendingLevel);
@@ -1284,9 +1359,10 @@
       list.append(b);
     });
   }
-  function showDiff(level) {
+  function showDiff(level, savedNote) {
     G.pendingLevel = level;
-    $('diff-sub').textContent = level > 1 ? `Starting at Level ${level}, ${stopName(level)}` : 'Starting in Toledo';
+    const start = level > 1 ? `Starting at Level ${level}, ${stopName(level)}` : 'Starting in Toledo';
+    $('diff-sub').textContent = savedNote ? `${savedNote} ${start}.` : start;
     buildDiffList();
     showScreen('diff');
   }
@@ -1300,6 +1376,7 @@
     $('lvl-face').src = faceUrls[(Math.random() * 6) | 0];
     G.state = 'levelup';
     showScreen('level');
+    saveRun();
   }
   function showGameOver() {
     $('over-gelt').textContent = fmt(G.score);
@@ -1312,19 +1389,35 @@
     showScreen('over');
   }
   function togglePause() {
-    if (G.state === 'play') { G.state = 'paused'; showScreen('pause'); }
+    if (G.state === 'play') { G.state = 'paused'; showScreen('pause'); saveRun(); }
     else if (G.state === 'paused') { G.state = 'play'; G.busy = 0.25; showScreen(null); }
   }
-  function syncMute() {
-    $('ico-sound').hidden = Sound.muted;
-    $('ico-muted').hidden = !Sound.muted;
-    $('btn-mute').setAttribute('aria-label', Sound.muted ? 'Turn sound on' : 'Mute sound');
-  }
-  function syncMusic() {
+  // Two separate settings: Music and Sounds (effects). The speaker button up top is a shortcut
+  // that turns both off, and the next tap brings back whatever was on before.
+  function syncAudio() {
+    const allOff = !Sound.sfx && !Music.enabled;
+    $('ico-sound').hidden = allOff;
+    $('ico-muted').hidden = !allOff;
+    $('btn-mute').setAttribute('aria-label', allOff ? 'Turn sound on' : 'Mute all sound');
     document.querySelectorAll('[data-music]').forEach(b => {
       b.setAttribute('aria-pressed', String(Music.enabled));
       b.querySelector('span').textContent = Music.enabled ? 'Music on' : 'Music off';
     });
+    document.querySelectorAll('[data-sfx]').forEach(b => {
+      b.setAttribute('aria-pressed', String(Sound.sfx));
+      b.querySelector('span').textContent = Sound.sfx ? 'Sounds on' : 'Sounds off';
+    });
+  }
+  function toggleAll() {
+    if (Sound.sfx || Music.enabled) {
+      store.set('audioPrev', { music: Music.enabled, sfx: Sound.sfx });
+      Sound.setSfx(false); Music.setEnabled(false);
+    } else {
+      const prev = store.get('audioPrev', null) || { music: true, sfx: true };
+      const neither = !prev.music && !prev.sfx;
+      Sound.setSfx(neither || prev.sfx); Music.setEnabled(neither || prev.music);
+    }
+    syncAudio();
   }
 
   // ---------- Input ----------
@@ -1368,8 +1461,9 @@
     if (k === 'Escape' && (!screens.diff.hidden || !screens.name.hidden)) { showTitle(); return; }
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
     if (k === 'p' || k === 'P' || k === 'Escape') { togglePause(); return; }
-    if (k === 'm' || k === 'M') { Sound.toggle(); syncMute(); return; }
-    if (k === 'n' || k === 'N') { Music.toggle(); syncMusic(); return; }
+    if (k === 'm' || k === 'M') { toggleAll(); return; }
+    if (k === 'n' || k === 'N') { Music.toggle(); syncAudio(); return; }
+    if (k === 'b' || k === 'B') { Sound.setSfx(!Sound.sfx); syncAudio(); return; }
     if (G.state !== 'play') return;
     if (k === 'ArrowLeft' || k === 'a' || k === 'A') { keys.left = true; e.preventDefault(); }
     else if (k === 'ArrowRight' || k === 'd' || k === 'D') { keys.right = true; e.preventDefault(); }
@@ -1380,9 +1474,17 @@
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') keys.left = false;
     if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') keys.right = false;
   });
-  document.addEventListener('visibilitychange', () => { if (document.hidden && G.state === 'play') togglePause(); });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) return;
+    if (G.state === 'play') togglePause(); else saveRun();
+  });
+  window.addEventListener('pagehide', saveRun);
 
-  $('btn-play').addEventListener('click', () => needName(() => showDiff(1)));
+  $('btn-resume-run').addEventListener('click', () => { Sound.init(); resumeRun(); });
+  $('btn-play').addEventListener('click', () => needName(() => {
+    const r = savedRun();
+    showDiff(1, r && r.score > 0 ? `Your unfinished game (${fmt(r.score)} gelt) goes on the high scores.` : '');
+  }));
   $('btn-continue').addEventListener('click', () => needName(() => showDiff(G.maxLevel)));
   $('btn-diff-back').addEventListener('click', showTitle);
   $('btn-change-name').addEventListener('click', () => askName(showTitle));
@@ -1410,13 +1512,17 @@
     if (ent && ent.rank) showScores(ent.id);
   });
   $('btn-pause').addEventListener('click', togglePause);
-  $('btn-mute').addEventListener('click', () => { Sound.init(); Sound.toggle(); syncMute(); });
+  $('btn-mute').addEventListener('click', () => { Sound.init(); toggleAll(); });
   $('btn-resume').addEventListener('click', togglePause);
   $('btn-restart').addEventListener('click', () => startLevel(G.level, G.levelStartScore));
   $('btn-next').addEventListener('click', () => startLevel(G.level + 1, G.score));
   $('btn-retry').addEventListener('click', () => startLevel(G.level, G.levelStartScore));
   $('btn-over-home').addEventListener('click', showTitle);
-  document.querySelectorAll('[data-music]').forEach(b => b.addEventListener('click', () => { Sound.init(); Music.toggle(); syncMusic(); }));
+  document.querySelectorAll('[data-music]').forEach(b => b.addEventListener('click', () => { Sound.init(); Music.toggle(); syncAudio(); }));
+  document.querySelectorAll('[data-sfx]').forEach(b => b.addEventListener('click', () => {
+    Sound.init(); Sound.setSfx(!Sound.sfx); syncAudio();
+    Sound.swap(); // a little blip so you hear it come back on
+  }));
 
   // ---------- Update ----------
   let aimCache = { key: '', pts: [], ghost: null };
@@ -1807,8 +1913,7 @@
   resize();
   buildCast();
   $('logo-candles').src = makeLogoCandles();
-  syncMute();
-  syncMusic();
+  syncAudio();
   buildScoreTabs();
   showTitle();
   flushPending();

@@ -184,6 +184,7 @@ body {
   border: calc(var(--u) * 2) solid rgba(239, 226, 194, .45);
 }
 .btn.secondary:active { transform: none; }
+.btn .btn-sub { display: block; margin-top: calc(var(--u) * 1); font-size: calc(var(--u) * 12.5); font-weight: 600; opacity: .75; }
 .best { margin: 0; font-size: calc(var(--u) * 13.5); color: rgba(239, 226, 194, .75); font-variant-numeric: tabular-nums; }
 .howto { margin: 0; font-size: calc(var(--u) * 12.5); line-height: 1.4; color: rgba(239, 226, 194, .7); max-width: calc(var(--u) * 320); }
 .credit {
@@ -248,7 +249,10 @@ body {
   touch-action: manipulation;
 }
 .link:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
-.pill-row { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--u) * 8); }
+.pill-row { display: flex; flex-wrap: wrap; justify-content: center; gap: calc(var(--u) * 7); }
+.title-screen .pill { font-size: calc(var(--u) * 12.5); gap: calc(var(--u) * 5); padding-left: calc(var(--u) * 10); padding-right: calc(var(--u) * 11); }
+.title-screen .pill svg { width: calc(var(--u) * 15); height: calc(var(--u) * 15); }
+.title-screen .pill-row { flex-wrap: nowrap; gap: calc(var(--u) * 6); }
 
 /* Name entry */
 .name-input {

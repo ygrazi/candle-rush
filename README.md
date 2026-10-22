@@ -21,6 +21,8 @@ It opens full screen like a normal app, and after the first visit it works offli
 - Tap **Next** to swap your current piece.
 - **Your name:** asked the first time you play (first name or nickname). Change it from the title screen.
 - **Pause menu:** Resume, Restart level, Change difficulty, or End game. Ending a game (or switching difficulty) saves your score.
+- **Stop anytime:** the game saves itself after every shot. Close the app and next time tap **Resume** to get the same board, gelt and difficulty back. Tapping **New game** instead puts the unfinished game's score on the high scores first.
+- **Music and Sounds:** separate on/off switches on the title screen and in the pause menu. The speaker button up top turns everything off at once, and tapping it again brings back what was on.
 - **High scores:** top 10 for each difficulty, for **Everyone** (online, shared by all players) or **This device**. Scores made offline are sent the next time the phone is online.
 - **Difficulty:** pick one each time you tap Play or Continue. Best scores are kept per difficulty.
 
@@ -32,8 +34,8 @@ It opens full screen like a normal app, and after the first visit it works offli
 | Hard | None | Faster, an extra brick | 2× |
 | Erev Pesach | None | Fastest, extra bricks and a Haman | 3× |
 
-- **Music:** an original klezmer/Sephardic-style tune that speeds up as candle lighting gets close. Turn it on or off from the title screen or the pause menu.
-- Keyboard: arrows to aim, Space to shoot, X to swap, P to pause, M to mute everything, N for music on/off.
+- **Music:** an original klezmer/Sephardic-style tune that speeds up as candle lighting gets close.
+- Keyboard: arrows to aim, Space to shoot, X to swap, P to pause, M mutes everything, N music on/off, B sounds on/off.
 
 ## The cast
 

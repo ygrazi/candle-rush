@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="style.css?v=0.5.0">
+<link rel="stylesheet" href="style.css?v=0.6.0">
 </head>
 <body>
 <div id="app">
@@ -43,6 +43,7 @@
       <p class="tagline">Pop the mishpacha before candle lighting.</p>
       <div class="cast" id="cast"></div>
       <div class="buttons">
+        <button class="btn" id="btn-resume-run" type="button" hidden><span>Resume</span><span class="btn-sub" id="resume-sub"></span></button>
         <button class="btn" id="btn-play" type="button" data-focus>Play</button>
         <button class="btn secondary" id="btn-continue" type="button" hidden>Continue</button>
       </div>
@@ -56,6 +57,10 @@
         <button class="pill" type="button" data-music aria-pressed="true">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
           <span>Music on</span>
+        </button>
+        <button class="pill" type="button" data-sfx aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          <span>Sounds on</span>
         </button>
       </div>
       <p class="credit">Created by Yitzhak Grazi</p>
@@ -102,10 +107,16 @@
       <div class="card">
         <h2>Paused</h2>
         <p>The candles will wait.</p>
-        <button class="pill" type="button" data-music aria-pressed="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
-          <span>Music on</span>
-        </button>
+        <div class="pill-row">
+          <button class="pill" type="button" data-music aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17.5V6l11-2.5v11.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
+            <span>Music on</span>
+          </button>
+          <button class="pill" type="button" data-sfx aria-pressed="true">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            <span>Sounds on</span>
+          </button>
+        </div>
         <div class="buttons">
           <button class="btn" id="btn-resume" type="button" data-focus>Resume</button>
           <button class="btn secondary" id="btn-restart" type="button">Restart level</button>
@@ -151,7 +162,7 @@
     </section>
   </div>
 </div>
-<script src="game.js?v=0.5.0"></script>
+<script src="game.js?v=0.6.0"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
