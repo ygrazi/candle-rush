@@ -1,7 +1,7 @@
 {
-  "name": "Mazal Pop!",
-  "short_name": "Mazal Pop",
-  "description": "A Jewish-themed bubble shooter for the whole mishpacha.",
+  "name": "Candle Rush",
+  "short_name": "Candle Rush",
+  "description": "A Jewish-themed bubble shooter for the whole mishpacha. Created by Yitzhak Grazi.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

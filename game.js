@@ -1,4 +1,5 @@
-/* Mazal Pop! v0.1
+/* Candle Rush v0.2
+   Created by Yitzhak Grazi.
    A bubble shooter starring the mishpacha.
    Plain canvas, no libraries. Logical board is 400 x 680 and scales to any screen. */
 (() => {
@@ -52,8 +53,8 @@
 
   // ---------- Small helpers ----------
   const store = {
-    get(k, d) { try { const v = localStorage.getItem('mazalpop.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
-    set(k, v) { try { localStorage.setItem('mazalpop.' + k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
+    get(k, d) { try { const v = localStorage.getItem('candlerush.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('candlerush.' + k, JSON.stringify(v)); } catch (e) { /* storage blocked */ } },
   };
   const vibrate = p => { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) { /* not supported */ } };
   const fmt = n => Math.round(n).toLocaleString('en-US');
@@ -1335,6 +1336,29 @@
       fig.append(img, cap); wrap.append(fig);
     });
   }
+  // Two Shabbat candles in silver holders. s = candle scale, sp = half the gap between them (in s units)
+  function drawCandlePair(c, cx, cy, s, sp = 0.32) {
+    for (const side of [-1, 1]) {
+      const x = cx + side * sp * s;
+      const gl = c.createRadialGradient(x, cy - 0.55 * s, 0, x, cy - 0.55 * s, 0.42 * s);
+      gl.addColorStop(0, 'rgba(255,200,90,.55)'); gl.addColorStop(1, 'rgba(255,200,90,0)');
+      c.fillStyle = gl; circ(c, x, cy - 0.55 * s, 0.42 * s); c.fill();
+      c.fillStyle = '#c3c9df';
+      roundRect(c, x - 0.16 * s, cy + 0.62 * s, 0.32 * s, 0.08 * s, 0.04 * s); c.fill();
+      c.fillRect(x - 0.035 * s, cy + 0.32 * s, 0.07 * s, 0.32 * s);
+      c.fillStyle = '#e1e5f4';
+      roundRect(c, x - 0.13 * s, cy + 0.26 * s, 0.26 * s, 0.09 * s, 0.04 * s); c.fill();
+      const g = c.createLinearGradient(x - 0.07 * s, 0, x + 0.07 * s, 0);
+      g.addColorStop(0, '#fffaf0'); g.addColorStop(1, '#e3d6ba');
+      c.fillStyle = g; c.fillRect(x - 0.07 * s, cy - 0.38 * s, 0.14 * s, 0.66 * s);
+      c.strokeStyle = '#2b2b2b'; c.lineWidth = 0.022 * s;
+      c.beginPath(); c.moveTo(x, cy - 0.38 * s); c.lineTo(x, cy - 0.45 * s); c.stroke();
+      c.fillStyle = '#ffb02e';
+      c.beginPath(); c.moveTo(x, cy - 0.74 * s); c.quadraticCurveTo(x + 0.11 * s, cy - 0.53 * s, x, cy - 0.44 * s); c.quadraticCurveTo(x - 0.11 * s, cy - 0.53 * s, x, cy - 0.74 * s); c.fill();
+      c.fillStyle = '#fff3c4';
+      c.beginPath(); c.moveTo(x, cy - 0.63 * s); c.quadraticCurveTo(x + 0.05 * s, cy - 0.51 * s, x, cy - 0.47 * s); c.quadraticCurveTo(x - 0.05 * s, cy - 0.51 * s, x, cy - 0.63 * s); c.fill();
+    }
+  }
   function makeIcon(size, maskable) {
     const cv = document.createElement('canvas');
     cv.width = cv.height = size;
@@ -1344,8 +1368,20 @@
     c.fillStyle = g; c.fillRect(0, 0, size, size);
     const rnd = mulberry32(3);
     for (let i = 0; i < 22; i++) { c.fillStyle = `rgba(255,244,214,${0.3 + rnd() * 0.5})`; circ(c, rnd() * size, rnd() * size, size * (0.004 + rnd() * 0.006)); c.fill(); }
-    const r = size * (maskable ? 0.27 : 0.33);
-    c.save(); c.translate(size / 2, size * 0.54); drawPiece(c, 3, r); c.restore();
+    // maskable icons get cropped to a circle, so shrink the art toward the center
+    const k = maskable ? 0.8 : 1;
+    c.save();
+    c.translate(size / 2, size / 2); c.scale(k, k); c.translate(-size / 2, -size / 2);
+    drawCandlePair(c, size * 0.5, size * 0.46, size * 0.44, 0.74);
+    c.translate(size * 0.5, size * 0.64); drawPiece(c, 3, size * 0.2);
+    c.restore();
+    return cv.toDataURL('image/png');
+  }
+  function makeLogoCandles() {
+    const cv = document.createElement('canvas');
+    cv.width = 320; cv.height = 224;
+    const c = cv.getContext('2d');
+    drawCandlePair(c, 160, 128, 130, 0.42);
     return cv.toDataURL('image/png');
   }
 
@@ -1355,12 +1391,13 @@
 
   resize();
   buildCast();
+  $('logo-candles').src = makeLogoCandles();
   syncMute();
   showTitle();
   requestAnimationFrame(frame);
 
   // Handy for testing in the browser console
-  window.MazalPop = {
+  window.CandleRush = {
     G, startLevel, makeIcon,
     aim(deg) { G.angle = Math.min(A_MAX, Math.max(A_MIN, deg * Math.PI / 180)); },
     fire, swap,

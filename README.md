@@ -1,8 +1,10 @@
-# Mazal Pop!
+# Candle Rush
 
-A Jewish-themed bubble shooter for frum families. Match three of the same character, drop Haman for bonus gelt, and beat candle lighting before the Jerusalem stone comes down.
+**Created by Yitzhak Grazi**
 
-**Play:** https://ygrazi.github.io/mazal-pop/
+A Jewish-themed bubble shooter for frum families. Match three of the same character, drop Haman for bonus gelt, and clear the board before candle lighting brings the Jerusalem stone down.
+
+**Play:** https://ygrazi.github.io/candle-rush/
 
 ## Put it on your phone
 
@@ -40,3 +42,5 @@ Plain HTML, CSS and JavaScript with no build step. All art and sound are generat
 - `sw.js`, `manifest.webmanifest`, `icons/`: install-to-home-screen and offline support
 
 To run it locally, serve the folder (for example `python3 -m http.server`) and open http://localhost:8000.
+
+© 2026 Yitzhak Grazi

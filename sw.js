@@ -1,6 +1,6 @@
 // Offline support. Same-origin files: network first (so updates show up), cache as fallback.
 // Google Fonts: cache first.
-const CACHE = 'mazal-pop-v1';
+const CACHE = 'candle-rush-v1';
 const ASSETS = [
   './',
   './index.html',

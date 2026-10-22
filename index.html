@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Mazal Pop!</title>
+<title>Candle Rush</title>
 <meta name="description" content="A Jewish-themed bubble shooter for the whole mishpacha. Match three, drop Haman, beat candle lighting.">
+<meta name="author" content="Yitzhak Grazi">
 <meta name="theme-color" content="#0f1836">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
@@ -12,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Mazal Pop">
+<meta name="apple-mobile-web-app-title" content="Candle Rush">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
@@ -21,7 +22,7 @@
 <body>
 <div id="app">
   <div id="stage">
-    <canvas id="game" aria-label="Mazal Pop game board"></canvas>
+    <canvas id="game" aria-label="Candle Rush game board"></canvas>
 
     <div class="hud-buttons" id="hud-buttons" hidden>
       <button class="icon-btn" id="btn-mute" type="button" aria-label="Mute sound">
@@ -35,8 +36,9 @@
 
     <section class="screen title-screen" id="screen-title" aria-label="Title">
       <div class="logo-wrap">
-        <h1 class="logo">Mazal Pop!</h1>
-        <div class="logo-he" lang="he" dir="rtl">מזל פופ</div>
+        <img class="logo-candles" id="logo-candles" alt="" width="160" height="112">
+        <h1 class="logo">Candle Rush</h1>
+        <div class="logo-he" lang="he" dir="rtl">הדלקת נרות</div>
       </div>
       <p class="tagline">Pop the mishpacha before candle lighting.</p>
       <div class="cast" id="cast"></div>
@@ -46,6 +48,7 @@
       </div>
       <p class="best" id="best-line" hidden></p>
       <p class="howto">Aim and let go. Match 3 of the same character to pop them. Every miss brings candle lighting closer, and when it hits, the Jerusalem stone comes down a row. Drop Haman for bonus gelt.</p>
+      <p class="credit">Created by Yitzhak Grazi</p>
     </section>
 
     <section class="screen dim" id="screen-pause" aria-label="Paused" hidden>

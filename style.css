@@ -92,10 +92,11 @@ body {
   touch-action: manipulation;
 }
 .title-screen {
-  gap: calc(var(--u) * 13);
+  gap: calc(var(--u) * 11);
   background: linear-gradient(rgba(12, 19, 46, .8), rgba(12, 19, 46, .94) 45%);
 }
 .logo-wrap { display: flex; flex-direction: column; align-items: center; }
+.logo-candles { width: calc(var(--u) * 80); height: calc(var(--u) * 56); margin-bottom: calc(var(--u) * -2); }
 .logo {
   margin: 0;
   font-weight: 700;
@@ -130,7 +131,7 @@ body {
   border: calc(var(--u) * 1.5) solid rgba(239, 226, 194, .15);
 }
 .cast figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 1); }
-.cast img { width: calc(var(--u) * 64); height: calc(var(--u) * 64); }
+.cast img { width: calc(var(--u) * 60); height: calc(var(--u) * 60); }
 .cast figcaption { font-size: calc(var(--u) * 12.5); font-weight: 600; color: var(--stone); white-space: nowrap; }
 
 .buttons { display: flex; flex-direction: column; align-items: center; gap: calc(var(--u) * 10); }
@@ -159,6 +160,14 @@ body {
 .btn.secondary:active { transform: none; }
 .best { margin: 0; font-size: calc(var(--u) * 13.5); color: rgba(239, 226, 194, .75); font-variant-numeric: tabular-nums; }
 .howto { margin: 0; font-size: calc(var(--u) * 12.5); line-height: 1.4; color: rgba(239, 226, 194, .7); max-width: calc(var(--u) * 320); }
+.credit {
+  margin: 0;
+  font-size: calc(var(--u) * 11.5);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--stone-deep);
+}
 
 /* Cards (pause, level done, game over) */
 .dim { background: rgba(8, 13, 32, .72); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
