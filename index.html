@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=0.2.1">
 </head>
 <body>
 <div id="app">
@@ -47,7 +47,7 @@
         <button class="btn secondary" id="btn-continue" type="button" hidden>Continue</button>
       </div>
       <p class="best" id="best-line" hidden></p>
-      <p class="howto">Aim and let go. Match 3 of the same character to pop them. Every miss brings candle lighting closer, and when it hits, the Jerusalem stone comes down a row. Drop Haman for bonus gelt.</p>
+      <p class="howto">Aim and let go. Match 3 to pop them. Every miss brings candle lighting closer, and then the Jerusalem stone comes down a row. Drop Haman for bonus gelt.</p>
       <p class="credit">Created by Yitzhak Grazi</p>
     </section>
 
@@ -97,7 +97,7 @@
     </section>
   </div>
 </div>
-<script src="game.js"></script>
+<script src="game.js?v=0.2.1"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

@@ -1,11 +1,12 @@
 // Offline support. Same-origin files: network first (so updates show up), cache as fallback.
 // Google Fonts: cache first.
-const CACHE = 'candle-rush-v1';
+// When releasing, bump CACHE here and the ?v= numbers in index.html together.
+const CACHE = 'candle-rush-v0.2.1';
 const ASSETS = [
   './',
   './index.html',
-  './style.css',
-  './game.js',
+  './style.css?v=0.2.1',
+  './game.js?v=0.2.1',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
@@ -31,9 +32,9 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin === location.origin) {
     e.respondWith(
-      fetch(req)
+      fetch(req, { cache: 'no-cache' })
         .then(res => { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); return res; })
-        .catch(() => caches.match(req).then(r => r || caches.match('./index.html')))
+        .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./index.html')))
     );
   } else if (url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com') {
     e.respondWith(

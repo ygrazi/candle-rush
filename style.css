@@ -87,20 +87,23 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  justify-content: safe center;
+  overflow-y: auto;
   text-align: center;
-  padding: calc(var(--u) * 22);
+  padding: calc(var(--u) * 18) calc(var(--u) * 22);
   touch-action: manipulation;
 }
 .title-screen {
-  gap: calc(var(--u) * 11);
+  gap: calc(var(--u) * 9);
   background: linear-gradient(rgba(12, 19, 46, .8), rgba(12, 19, 46, .94) 45%);
+  touch-action: pan-y;
 }
 .logo-wrap { display: flex; flex-direction: column; align-items: center; }
-.logo-candles { width: calc(var(--u) * 80); height: calc(var(--u) * 56); margin-bottom: calc(var(--u) * -2); }
+.logo-candles { width: calc(var(--u) * 70); height: calc(var(--u) * 49); margin-bottom: calc(var(--u) * -2); }
 .logo {
   margin: 0;
   font-weight: 700;
-  font-size: calc(var(--u) * 58);
+  font-size: calc(var(--u) * 54);
   line-height: .95;
   letter-spacing: -0.01em;
   color: var(--stone);
