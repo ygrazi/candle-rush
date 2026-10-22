@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="style.css?v=0.6.0">
+<link rel="stylesheet" href="style.css?v=0.6.1">
 </head>
 <body>
 <div id="app">
@@ -25,7 +25,11 @@
     <canvas id="game" aria-label="Candle Rush game board"></canvas>
 
     <div class="hud-buttons" id="hud-buttons" hidden>
-      <button class="icon-btn" id="btn-mute" type="button" aria-label="Mute sound">
+      <button class="icon-btn" id="btn-hud-music" type="button" aria-label="Turn music off" aria-pressed="true">
+        <svg id="ico-music-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M9 17.5V6l11-2.5v11.5"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/></svg>
+        <svg id="ico-music-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" hidden><path d="M9 17.5V6l11-2.5v11.5"/><circle cx="6.5" cy="17.5" r="2.8" fill="currentColor"/><circle cx="17.5" cy="15" r="2.8" fill="currentColor"/><path d="M3 3l18 18" stroke-width="2.6"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-mute" type="button" aria-label="Turn sounds off" aria-pressed="true">
         <svg id="ico-sound" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>
         <svg id="ico-muted" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" hidden><path d="M4 9v6h4l5 4V5L8 9H4z" fill="currentColor"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
       </button>
@@ -162,7 +166,7 @@
     </section>
   </div>
 </div>
-<script src="game.js?v=0.6.0"></script>
+<script src="game.js?v=0.6.1"></script>
 <script>
   if ('serviceWorker' in navigator && location.protocol === 'https:') {
     window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

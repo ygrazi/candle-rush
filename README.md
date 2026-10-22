@@ -22,7 +22,7 @@ It opens full screen like a normal app, and after the first visit it works offli
 - **Your name:** asked the first time you play (first name or nickname). Change it from the title screen.
 - **Pause menu:** Resume, Restart level, Change difficulty, or End game. Ending a game (or switching difficulty) saves your score.
 - **Stop anytime:** the game saves itself after every shot. Close the app and next time tap **Resume** to get the same board, gelt and difficulty back. Tapping **New game** instead puts the unfinished game's score on the high scores first.
-- **Music and Sounds:** separate on/off switches on the title screen and in the pause menu. The speaker button up top turns everything off at once, and tapping it again brings back what was on.
+- **Music and Sounds:** separate on/off switches. During a game, use the music-note and speaker buttons in the top bar; on the title screen and in the pause menu, use the Music and Sounds buttons.
 - **High scores:** top 10 for each difficulty, for **Everyone** (online, shared by all players) or **This device**. Scores made offline are sent the next time the phone is online.
 - **Difficulty:** pick one each time you tap Play or Continue. Best scores are kept per difficulty.
 

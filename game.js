@@ -1216,7 +1216,7 @@
     // name entry, difficulty and high scores open on top of the title screen
     const keepTitle = G.state === 'title' && OVERLAYS.includes(name);
     for (const k in screens) screens[k].hidden = !(k === name || (keepTitle && k === 'title'));
-    $('hud-buttons').hidden = false;
+    $('hud-buttons').hidden = G.state === 'title'; // the title screen has its own Music / Sounds buttons
     $('btn-pause').hidden = !(G.state === 'play' || G.state === 'clearing' || G.state === 'dying');
     if (name) {
       const b = screens[name].querySelector('[data-focus]');
@@ -1392,13 +1392,19 @@
     if (G.state === 'play') { G.state = 'paused'; showScreen('pause'); saveRun(); }
     else if (G.state === 'paused') { G.state = 'play'; G.busy = 0.25; showScreen(null); }
   }
-  // Two separate settings: Music and Sounds (effects). The speaker button up top is a shortcut
-  // that turns both off, and the next tap brings back whatever was on before.
+  // Two separate settings: Music and Sounds (effects). Each has a button in the top bar during
+  // the game, and a pill on the title screen and pause menu. The M key turns both off and back on.
   function syncAudio() {
-    const allOff = !Sound.sfx && !Music.enabled;
-    $('ico-sound').hidden = allOff;
-    $('ico-muted').hidden = !allOff;
-    $('btn-mute').setAttribute('aria-label', allOff ? 'Turn sound on' : 'Mute all sound');
+    // SVG elements ignore the .hidden property, so set the attribute itself
+    const showIf = (id, on) => $(id).toggleAttribute('hidden', !on);
+    showIf('ico-sound', Sound.sfx);
+    showIf('ico-muted', !Sound.sfx);
+    showIf('ico-music-on', Music.enabled);
+    showIf('ico-music-off', !Music.enabled);
+    $('btn-mute').setAttribute('aria-label', Sound.sfx ? 'Turn sounds off' : 'Turn sounds on');
+    $('btn-mute').setAttribute('aria-pressed', String(Sound.sfx));
+    $('btn-hud-music').setAttribute('aria-label', Music.enabled ? 'Turn music off' : 'Turn music on');
+    $('btn-hud-music').setAttribute('aria-pressed', String(Music.enabled));
     document.querySelectorAll('[data-music]').forEach(b => {
       b.setAttribute('aria-pressed', String(Music.enabled));
       b.querySelector('span').textContent = Music.enabled ? 'Music on' : 'Music off';
@@ -1512,7 +1518,8 @@
     if (ent && ent.rank) showScores(ent.id);
   });
   $('btn-pause').addEventListener('click', togglePause);
-  $('btn-mute').addEventListener('click', () => { Sound.init(); toggleAll(); });
+  $('btn-mute').addEventListener('click', () => { Sound.init(); Sound.setSfx(!Sound.sfx); syncAudio(); Sound.swap(); });
+  $('btn-hud-music').addEventListener('click', () => { Sound.init(); Music.toggle(); syncAudio(); });
   $('btn-resume').addEventListener('click', togglePause);
   $('btn-restart').addEventListener('click', () => startLevel(G.level, G.levelStartScore));
   $('btn-next').addEventListener('click', () => startLevel(G.level + 1, G.score));
@@ -1662,17 +1669,22 @@
     let size = 19;
     const name = stopName(G.level);
     ctx.font = `700 ${size}px ${FONT}`;
-    while (ctx.measureText(name).width > 150 && size > 12) { size--; ctx.font = `700 ${size}px ${FONT}`; }
+    while (ctx.measureText(name).width > 145 && size > 12) { size--; ctx.font = `700 ${size}px ${FONT}`; }
     ctx.fillStyle = '#efe2c2'; ctx.fillText(name, 22, 45);
 
+    // gelt sits left of the three buttons (music, sounds, pause); shrink big numbers to fit
+    const GX = 260;
     ctx.textAlign = 'right';
     ctx.font = `600 11px ${FONT}`; ctx.fillStyle = 'rgba(239,226,194,.62)';
-    ctx.fillText('GELT', 290, 24);
-    ctx.font = `700 22px ${FONT}`; ctx.fillStyle = '#ffd166';
+    ctx.fillText('GELT', GX, 24);
     const s = fmt(G.shown);
-    ctx.fillText(s, 290, 47);
+    let gs = 22;
+    ctx.font = `700 ${gs}px ${FONT}`;
+    while (ctx.measureText(s).width > 68 && gs > 13) { gs--; ctx.font = `700 ${gs}px ${FONT}`; }
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText(s, GX, 47);
     const cw = ctx.measureText(s).width;
-    const cx = 290 - cw - 13, cy = 39;
+    const cx = GX - cw - 13, cy = 47 - gs * 0.36;
     ctx.fillStyle = '#e8a91c'; circ(ctx, cx, cy, 8); ctx.fill();
     ctx.fillStyle = '#ffd166'; circ(ctx, cx, cy, 6); ctx.fill();
     ctx.strokeStyle = '#b07a10'; ctx.lineWidth = 1.2;

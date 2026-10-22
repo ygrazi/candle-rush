@@ -61,12 +61,12 @@ body {
   top: calc(var(--oy) + var(--u) * 11);
   right: calc(var(--ox) + var(--u) * 16);
   display: flex;
-  gap: calc(var(--u) * 8);
+  gap: calc(var(--u) * 7);
   z-index: 4;
 }
 .icon-btn {
-  width: calc(var(--u) * 36);
-  height: calc(var(--u) * 36);
+  width: calc(var(--u) * 34);
+  height: calc(var(--u) * 34);
   border-radius: 50%;
   border: calc(var(--u) * 2) solid rgba(239, 226, 194, .35);
   background: rgba(8, 13, 32, .6);
@@ -78,6 +78,7 @@ body {
   touch-action: manipulation;
 }
 .icon-btn svg { width: 55%; height: 55%; }
+.icon-btn[aria-pressed="false"] { color: rgba(239, 226, 194, .55); border-style: dashed; }
 .icon-btn:focus-visible, .btn:focus-visible, .pill:focus-visible { outline: 3px solid var(--flame); outline-offset: 2px; }
 
 /* Music on/off */
